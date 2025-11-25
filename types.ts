@@ -1,3 +1,4 @@
+
 export interface Skill {
   code: string;
   name: string;
@@ -13,6 +14,9 @@ export interface Activity {
   description: string;
   points: number;
   skillCode: string;
+  isDaily?: boolean;      // Should this be done every day?
+  penalty?: number;       // Points to subtract if missed
+  createdAt?: number;     // Timestamp when activity was created
 }
 
 export interface HistoryRecord {
@@ -23,6 +27,7 @@ export interface HistoryRecord {
   points: number;
   notes?: string;
   timestamp: number; // Unix timestamp
+  isAutoPenalty?: boolean; // Flag to identify auto-generated penalties
 }
 
 export interface SkillDetails extends Skill {

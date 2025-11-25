@@ -1,3 +1,4 @@
+
 import { Skill, Activity, HistoryRecord, LEVELS_THRESHOLD } from '../types';
 
 const STORAGE_KEYS = {
@@ -15,10 +16,10 @@ const INITIAL_SKILLS: Skill[] = [
 ];
 
 const INITIAL_ACTIVITIES: Activity[] = [
-  { id: 'a1', name: 'LeetCode Problem', description: 'Solved a medium problem', points: 15, skillCode: 'coding' },
-  { id: 'a2', name: 'Gym Session', description: '1 hour workout', points: 20, skillCode: 'fitness' },
-  { id: 'a3', name: 'Read Chapter', description: 'Read 1 chapter of a technical book', points: 10, skillCode: 'reading' },
-  { id: 'a4', name: 'Morning Meditation', description: '10 minutes guided', points: 5, skillCode: 'meditation' },
+  { id: 'a1', name: 'LeetCode Problem', description: 'Solved a medium problem', points: 15, skillCode: 'coding', createdAt: Date.now() },
+  { id: 'a2', name: 'Gym Session', description: '1 hour workout', points: 20, skillCode: 'fitness', isDaily: true, penalty: 10, createdAt: Date.now() - 259200000 }, // Created 3 days ago
+  { id: 'a3', name: 'Read Chapter', description: 'Read 1 chapter of a technical book', points: 10, skillCode: 'reading', createdAt: Date.now() },
+  { id: 'a4', name: 'Morning Meditation', description: '10 minutes guided', points: 5, skillCode: 'meditation', isDaily: true, penalty: 5, createdAt: Date.now() },
 ];
 
 // Helper to calculate level and progress
@@ -79,6 +80,9 @@ export const createSkill = async (name: string, icon: string, initialPoints: num
 };
 
 export const getSkillDetails = async (code: string): Promise<{ skill: Skill; history: HistoryRecord[] } | null> => {
+  // Check for daily penalties before returning data
+  await processDailyPenalties(code);
+
   await new Promise(resolve => setTimeout(resolve, 300));
   const skills = await getSkills();
   const skill = skills.find(s => s.code === code);
@@ -124,6 +128,8 @@ export const deleteHistoryRecord = async (id: string, skillCode: string): Promis
   await recalculateSkillPoints(skillCode);
 };
 
+// --- Internal Helpers ---
+
 const recalculateSkillPoints = async (skillCode: string) => {
   const historyStr = localStorage.getItem(STORAGE_KEYS.HISTORY);
   const allHistory: HistoryRecord[] = historyStr ? JSON.parse(historyStr) : [];
@@ -146,5 +152,81 @@ const recalculateSkillPoints = async (skillCode: string) => {
       progress
     };
     localStorage.setItem(STORAGE_KEYS.SKILLS, JSON.stringify(skills));
+  }
+};
+
+/**
+ * Checks all daily activities for the skill and generates penalty records 
+ * for missed days up to yesterday.
+ */
+const processDailyPenalties = async (skillCode: string) => {
+  const activities = await getActivities();
+  const dailyActivities = activities.filter(a => a.skillCode === skillCode && a.isDaily);
+  
+  if (dailyActivities.length === 0) return;
+
+  const historyStr = localStorage.getItem(STORAGE_KEYS.HISTORY);
+  let allHistory: HistoryRecord[] = historyStr ? JSON.parse(historyStr) : [];
+  let hasNewPenalties = false;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Helper to check if same day
+  const isSameDay = (d1: Date, d2: Date) => 
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate();
+
+  for (const activity of dailyActivities) {
+    // Start checking from activity creation or a sensible fallback
+    const startDate = activity.createdAt ? new Date(activity.createdAt) : new Date();
+    startDate.setHours(0, 0, 0, 0);
+    
+    // Iterate from start date until yesterday
+    const checkDate = new Date(startDate);
+    
+    // Don't check today, only past days
+    while (checkDate < today) {
+      
+      // 1. Did we do it this day?
+      const performed = allHistory.some(h => 
+        h.activityId === activity.id && 
+        isSameDay(new Date(h.timestamp), checkDate) &&
+        !h.isAutoPenalty // User actions only
+      );
+
+      // 2. Was a penalty already applied this day?
+      const penalized = allHistory.some(h => 
+        h.activityId === activity.id && 
+        isSameDay(new Date(h.timestamp), checkDate) &&
+        h.isAutoPenalty
+      );
+
+      if (!performed && !penalized) {
+        // Add penalty
+        const penaltyPoints = activity.penalty ? -Math.abs(activity.penalty) : -10;
+        const newRecord: HistoryRecord = {
+          id: `penalty-${activity.id}-${checkDate.getTime()}`,
+          skillCode: skillCode,
+          activityId: activity.id,
+          activityName: `Missed Daily: ${activity.name}`,
+          points: penaltyPoints,
+          notes: 'Automatic penalty for missing daily goal',
+          timestamp: checkDate.getTime() + 43200000, // Set to Noon of that day
+          isAutoPenalty: true
+        };
+        allHistory.push(newRecord);
+        hasNewPenalties = true;
+      }
+
+      // Next day
+      checkDate.setDate(checkDate.getDate() + 1);
+    }
+  }
+
+  if (hasNewPenalties) {
+    localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(allHistory));
+    await recalculateSkillPoints(skillCode);
   }
 };
