@@ -1,6 +1,5 @@
 const API_BASE = '/api';
 
-// Helper for making API requests
 const fetchAPI = async (endpoint, options) => {
   const response = await fetch(`${API_BASE}${endpoint}`, {
     headers: {
@@ -16,8 +15,6 @@ const fetchAPI = async (endpoint, options) => {
 
   return response.json();
 };
-
-// --- API Methods ---
 
 export const getSkills = async () => {
   return fetchAPI('/skills');
@@ -62,3 +59,4 @@ export const deleteHistoryRecord = async (id, skillCode) => {
     method: 'DELETE',
   });
 };
+

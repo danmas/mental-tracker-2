@@ -13,8 +13,11 @@
               brand: {
                 50: '#f0f9ff',
                 100: '#e0f2fe',
+                200: '#bae6fd',
                 500: '#0ea5e9',
                 600: '#0284c7',
+                700: '#0369a1',
+                800: '#075985',
                 900: '#0c4a6e',
               }
             }
@@ -22,23 +25,20 @@
         }
       }
     </script>
-    <!-- Babel is required to parse JSX in the browser without a build step -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script type="importmap">
+    <script type="importmap">
 {
   "imports": {
-    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
     "react": "https://esm.sh/react@18.2.0",
-    "recharts": "https://esm.sh/recharts@2.12.2?external=react,react-dom",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/"
+    "react-dom": "https://esm.sh/react-dom@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "htm": "https://esm.sh/htm@3.1.1",
+    "recharts": "https://esm.sh/recharts@2.12.2?external=react,react-dom"
   }
 }
 </script>
 </head>
   <body class="bg-gray-900">
     <div id="root"></div>
-    <!-- Load the main application file with Babel -->
-    <script type="text/babel" data-type="module" src="./index.tsx"></script>
+    <script type="module" src="./index.js"></script>
   </body>
 </html>

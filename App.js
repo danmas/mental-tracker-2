@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { Dashboard } from './pages/Dashboard.tsx';
-import { SkillDetails } from './pages/SkillDetails.tsx';
+import htm from 'htm';
+import { Dashboard } from './pages/Dashboard.js';
+import { SkillDetails } from './pages/SkillDetails.js';
+
+const html = htm.bind(React.createElement);
 
 function App() {
   const [view, setView] = useState({ name: 'dashboard' });
@@ -15,13 +18,13 @@ function App() {
     window.scrollTo(0, 0);
   };
 
-  return (
+  return html`
     <div className="min-h-screen bg-gray-900 text-gray-100 font-sans">
       <header className="bg-gray-800 border-b border-gray-700 sticky top-0 z-30 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
           <div 
             className="flex items-center gap-2 cursor-pointer" 
-            onClick={navigateHome}
+            onClick=${navigateHome}
           >
             <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
               M
@@ -36,17 +39,14 @@ function App() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8">
-        {view.name === 'dashboard' ? (
-          <Dashboard onSkillClick={navigateToSkill} />
-        ) : (
-          <SkillDetails 
-            skillCode={view.skillCode} 
-            onBack={navigateHome} 
-          />
-        )}
+        ${view.name === 'dashboard' 
+          ? html`<${Dashboard} onSkillClick=${navigateToSkill} />`
+          : html`<${SkillDetails} skillCode=${view.skillCode} onBack=${navigateHome} />`
+        }
       </main>
     </div>
-  );
+  `;
 }
 
 export default App;
+

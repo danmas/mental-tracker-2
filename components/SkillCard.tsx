@@ -1,13 +1,7 @@
 import React from 'react';
-import { Skill } from '../types';
-import { ProgressBar } from './ProgressBar';
+import { ProgressBar } from './ProgressBar.tsx';
 
-interface SkillCardProps {
-  skill: Skill;
-  onClick: () => void;
-}
-
-export const SkillCard: React.FC<SkillCardProps> = ({ skill, onClick }) => {
+export const SkillCard = ({ skill, onClick }) => {
   return (
     <div 
       onClick={onClick}

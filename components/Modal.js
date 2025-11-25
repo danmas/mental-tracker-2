@@ -1,4 +1,7 @@
 import React, { useEffect } from 'react';
+import htm from 'htm';
+
+const html = htm.bind(React.createElement);
 
 export const Modal = ({ isOpen, onClose, title, children }) => {
   useEffect(() => {
@@ -11,26 +14,27 @@ export const Modal = ({ isOpen, onClose, title, children }) => {
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+  return html`
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
       <div 
-        className="bg-gray-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all animate-slide-up border border-gray-700"
+        className="bg-gray-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all border border-gray-700"
         role="dialog"
         aria-modal="true"
       >
         <div className="px-6 py-4 border-b border-gray-700 flex justify-between items-center bg-gray-800">
-          <h3 className="text-lg font-semibold text-gray-100">{title}</h3>
+          <h3 className="text-lg font-semibold text-gray-100">${title}</h3>
           <button 
-            onClick={onClose}
+            onClick=${onClose}
             className="text-gray-500 hover:text-gray-300 transition-colors text-2xl leading-none"
           >
-            &times;
+            ×
           </button>
         </div>
         <div className="p-6 max-h-[80vh] overflow-y-auto">
-          {children}
+          ${children}
         </div>
       </div>
     </div>
-  );
+  `;
 };
+
