@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo } from 'react';
 import { Skill, Activity, HistoryRecord } from '../types';
 import { getSkillDetails, getActivities, addHistoryRecord, deleteHistoryRecord, createActivity } from '../services/api';
@@ -21,14 +22,17 @@ export const SkillDetails: React.FC<SkillDetailsProps> = ({ skillCode, onBack })
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [isCreateActivityOpen, setIsCreateActivityOpen] = useState(false);
 
-  // Form States
+  // Form States - Log Activity
   const [selectedActivityId, setSelectedActivityId] = useState('');
   const [pointsInput, setPointsInput] = useState(10);
   const [notesInput, setNotesInput] = useState('');
   
+  // Form States - Create Activity
   const [newActivityName, setNewActivityName] = useState('');
   const [newActivityDesc, setNewActivityDesc] = useState('');
   const [newActivityPoints, setNewActivityPoints] = useState(10);
+  const [isDaily, setIsDaily] = useState(false);
+  const [penaltyPoints, setPenaltyPoints] = useState(10);
 
   const loadData = async () => {
     try {
@@ -86,13 +90,18 @@ export const SkillDetails: React.FC<SkillDetailsProps> = ({ skillCode, onBack })
       name: newActivityName,
       description: newActivityDesc,
       points: newActivityPoints,
-      skillCode: skill.code
+      skillCode: skill.code,
+      isDaily: isDaily,
+      penalty: isDaily ? penaltyPoints : undefined,
+      createdAt: Date.now()
     };
 
     await createActivity(newAct);
     setIsCreateActivityOpen(false);
     setNewActivityName('');
     setNewActivityDesc('');
+    setIsDaily(false);
+    setPenaltyPoints(10);
     loadData();
   };
 
@@ -164,7 +173,9 @@ export const SkillDetails: React.FC<SkillDetailsProps> = ({ skillCode, onBack })
             <div className="text-4xl font-black text-gray-100">{skill.level}</div>
           </div>
           <div className="text-right">
-             <span className="text-2xl font-bold text-brand-400">{skill.currentPoints}</span>
+             <span className={`text-2xl font-bold ${skill.currentPoints < 0 ? 'text-red-400' : 'text-brand-400'}`}>
+                {skill.currentPoints}
+             </span>
              <span className="text-gray-400 text-sm ml-1">XP</span>
           </div>
         </div>
@@ -228,9 +239,12 @@ export const SkillDetails: React.FC<SkillDetailsProps> = ({ skillCode, onBack })
                 </h4>
                 <div className="space-y-3">
                   {items.map(record => (
-                    <div key={record.id} className="bg-gray-800 p-4 rounded-xl border border-gray-700 flex justify-between items-center shadow-sm">
+                    <div key={record.id} className={`bg-gray-800 p-4 rounded-xl border flex justify-between items-center shadow-sm ${record.isAutoPenalty ? 'border-red-900/50 bg-red-900/10' : 'border-gray-700'}`}>
                       <div>
-                        <p className="font-bold text-gray-200">{record.activityName}</p>
+                        <div className="flex items-center gap-2">
+                            <p className={`font-bold ${record.isAutoPenalty ? 'text-red-300' : 'text-gray-200'}`}>{record.activityName}</p>
+                            {record.isAutoPenalty && <span className="text-[10px] bg-red-900 text-red-200 px-1.5 py-0.5 rounded uppercase tracking-wider">Missed</span>}
+                        </div>
                         {record.notes && <p className="text-sm text-gray-400 mt-1">{record.notes}</p>}
                         <p className="text-xs text-gray-500 mt-1">
                           {new Date(record.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
@@ -272,7 +286,9 @@ export const SkillDetails: React.FC<SkillDetailsProps> = ({ skillCode, onBack })
             >
               <option value="">-- Manual Entry --</option>
               {availableActivities.map(a => (
-                <option key={a.id} value={a.id}>{a.name} (+{a.points} XP)</option>
+                <option key={a.id} value={a.id}>
+                    {a.name} {a.isDaily && '📅'} (+{a.points} XP)
+                </option>
               ))}
             </select>
           </div>
@@ -333,15 +349,48 @@ export const SkillDetails: React.FC<SkillDetailsProps> = ({ skillCode, onBack })
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Default Points</label>
-            <input 
-              required
-              type="number" 
-              value={newActivityPoints}
-              onChange={(e) => setNewActivityPoints(Number(e.target.value))}
-              className="w-full rounded-lg border-gray-600 bg-gray-700 text-white placeholder-gray-400 border p-2.5 focus:ring-2 focus:ring-brand-500 focus:outline-none"
-            />
+          <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Points for Success</label>
+                <input 
+                  required
+                  type="number" 
+                  value={newActivityPoints}
+                  onChange={(e) => setNewActivityPoints(Number(e.target.value))}
+                  className="w-full rounded-lg border-gray-600 bg-gray-700 text-white placeholder-gray-400 border p-2.5 focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                />
+              </div>
+          </div>
+
+          <div className="bg-gray-700/50 p-3 rounded-lg border border-gray-600">
+             <div className="flex items-center gap-2 mb-2">
+                 <input 
+                    type="checkbox" 
+                    id="isDaily"
+                    checked={isDaily}
+                    onChange={(e) => setIsDaily(e.target.checked)}
+                    className="w-4 h-4 rounded border-gray-500 text-brand-500 focus:ring-brand-500 focus:ring-offset-gray-800"
+                 />
+                 <label htmlFor="isDaily" className="text-sm font-medium text-gray-200 select-none">
+                     Perform Every Day
+                 </label>
+             </div>
+             
+             {isDaily && (
+                 <div className="animate-fade-in mt-2">
+                    <label className="block text-xs font-medium text-red-300 mb-1">Penalty if missed (Points to lose)</label>
+                    <input 
+                      type="number" 
+                      min="1"
+                      value={penaltyPoints}
+                      onChange={(e) => setPenaltyPoints(Number(e.target.value))}
+                      className="w-full rounded-lg border-red-900/50 bg-gray-800 text-white placeholder-gray-400 border p-2 focus:ring-2 focus:ring-red-500 focus:outline-none"
+                    />
+                    <p className="text-[10px] text-gray-400 mt-1">
+                        System will automatically deduct these points for every missed day.
+                    </p>
+                 </div>
+             )}
           </div>
 
           <div className="pt-2">
